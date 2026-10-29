@@ -137,7 +137,18 @@ class TestSkillForgeBackend(unittest.TestCase):
 
     def test_07_safe_code_evaluator(self):
         learner_id = "demo-learner-7"
-        # Submitting buggy code (element reuse bug)
+        
+        # 1. Unmodified starter code must return score 0 and unevaluated/failed tests
+        starter_code = "def two_sum(nums, target):\n    # Write your solution here\n    pass"
+        starter_res = submit_challenge(
+            req=ChallengeSubmitRequest(challenge_id="ch-two-sum", code_or_answer=starter_code, language="python"),
+            x_learner_id=learner_id
+        )
+        self.assertFalse(starter_res.passed)
+        self.assertEqual(starter_res.score, 0)
+        self.assertTrue(all(not tr.passed for tr in starter_res.test_results))
+
+        # 2. Submitting buggy code (element reuse bug: range(i, len(nums)))
         buggy_code = "def two_sum(nums, target):\n    for i in range(len(nums)):\n        for j in range(i, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]\n    return []"
         eval_res = submit_challenge(
             req=ChallengeSubmitRequest(challenge_id="ch-two-sum", code_or_answer=buggy_code, language="python"),
@@ -146,6 +157,17 @@ class TestSkillForgeBackend(unittest.TestCase):
         self.assertFalse(eval_res.passed)
         self.assertIn("Score < 50%", eval_res.adaptation_rule_applied)
         self.assertIsNotNone(eval_res.mistake_analysis)
+        self.assertEqual(eval_res.score, 33)
+
+        # 3. Submitting optimal hashmap solution: must pass 100%
+        optimal_code = "def two_sum(nums, target):\n    seen = {}\n    for i, n in enumerate(nums):\n        diff = target - n\n        if diff in seen:\n            return [seen[diff], i]\n        seen[n] = i\n    return []"
+        opt_res = submit_challenge(
+            req=ChallengeSubmitRequest(challenge_id="ch-two-sum", code_or_answer=optimal_code, language="python"),
+            x_learner_id=learner_id
+        )
+        self.assertTrue(opt_res.passed)
+        self.assertEqual(opt_res.score, 100)
+        self.assertTrue(all(tr.passed for tr in opt_res.test_results))
 
     def test_08_mini_projects_and_rubric_evaluation(self):
         projects = list_mini_projects()
