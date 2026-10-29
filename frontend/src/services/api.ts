@@ -5,7 +5,33 @@ import {
   SubmissionEvaluateResponse, ProgressSummary, ActivityItem, DemoScenario
 } from '../types';
 
-const API_BASE = '/api';
+// Resolves the backend base URL from environment or falls back to '/api' for local dev
+function resolveApiBase(): string {
+  const envUrl = (import.meta.env.VITE_API_BASE_URL || '').trim();
+  if (!envUrl) {
+    return '/api';
+  }
+  const cleanUrl = envUrl.replace(/\/+$/, '');
+  return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+}
+
+export const API_BASE = resolveApiBase();
+
+/**
+ * Builds the complete URL for an endpoint, preventing duplicate '/api' prefixes and multiple slashes.
+ */
+export function buildApiUrl(endpoint: string): string {
+  let path = (endpoint || '').trim();
+  if (!path.startsWith('/')) {
+    path = `/${path}`;
+  }
+  if (path.startsWith('/api/')) {
+    path = path.slice(4);
+  } else if (path === '/api') {
+    path = '';
+  }
+  return `${API_BASE}${path}`;
+}
 
 class ApiService {
   private learnerId: string = 'demo-learner-1';
@@ -25,7 +51,7 @@ class ApiService {
       ...(options.headers as Record<string, string> || {})
     };
 
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+    const res = await fetch(buildApiUrl(endpoint), {
       ...options,
       headers
     });
@@ -141,7 +167,7 @@ class ApiService {
     const formData = new FormData();
     formData.append('file', file);
 
-    const res = await fetch(`${API_BASE}/documents/upload`, {
+    const res = await fetch(buildApiUrl('/documents/upload'), {
       method: 'POST',
       headers: {
         'x-learner-id': this.learnerId
