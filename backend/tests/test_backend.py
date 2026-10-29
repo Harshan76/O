@@ -20,10 +20,18 @@ from app.api.challenge_routes import get_challenge_detail, submit_challenge
 from app.api.project_routes import list_mini_projects, generate_mini_project, evaluate_project_submission
 from app.api.progress_routes import get_progress_summary, get_progress_history
 from app.api.demo_routes import list_demo_scenarios, switch_active_scenario
+from app.api.course_learning_routes import (
+    get_course_learning_resources,
+    list_student_notes,
+    create_student_note,
+    update_student_note,
+    delete_student_note
+)
 from app.models.schemas import (
     LearnerProfileUpdate, LearningGoalCreate,
     AssessmentSubmitRequest, QuestionAnswer,
-    TutorChatRequest, ChallengeSubmitRequest, SubmissionEvaluateRequest
+    TutorChatRequest, ChallengeSubmitRequest, SubmissionEvaluateRequest,
+    StudentNoteCreate, StudentNoteUpdate
 )
 from app.services.notes_service import process_document_and_extract, generate_study_tools_from_notes
 
@@ -220,6 +228,70 @@ def safe_handler(data):
 
         history = get_progress_history(x_learner_id=learner_id)
         self.assertIsInstance(history, list)
+
+    def test_11_course_learning_hub_and_smart_notes(self):
+        learner_id = "test-learner-hub"
+        course_id = "c-python"
+
+        # 1. Fetch course learning hub resources
+        resources = get_course_learning_resources(course_id=course_id)
+        self.assertEqual(resources.course_id, "c-python")
+        self.assertGreaterEqual(len(resources.topics), 3)
+
+        first_topic = resources.topics[0]
+        self.assertIsNotNone(first_topic.study_notes.introduction)
+        self.assertGreaterEqual(len(first_topic.study_notes.concepts), 2)
+        self.assertGreaterEqual(len(first_topic.videos), 1)
+        self.assertIn("embed", first_topic.videos[0].embed_url)
+
+        # 2. Create student personal note
+        create_payload = StudentNoteCreate(
+            title="Reference Semantics Note",
+            content="Variables point to memory addresses. Shallow copy doesn't duplicate nested objects.",
+            topic_id=first_topic.id,
+            topic_title=first_topic.title
+        )
+        created_note = create_student_note(
+            course_id=course_id,
+            payload=create_payload,
+            x_learner_id=learner_id
+        )
+        self.assertEqual(created_note.title, "Reference Semantics Note")
+        self.assertEqual(created_note.course_id, course_id)
+        self.assertEqual(created_note.learner_id, learner_id)
+
+        # 3. List notes for this student and course
+        notes_list = list_student_notes(course_id=course_id, x_learner_id=learner_id)
+        self.assertTrue(any(n.id == created_note.id for n in notes_list))
+
+        # 4. Note isolation: another student should NOT see this note
+        other_notes = list_student_notes(course_id=course_id, x_learner_id="other-student-99")
+        self.assertFalse(any(n.id == created_note.id for n in other_notes))
+
+        # 5. Update note
+        update_payload = StudentNoteUpdate(
+            title="Updated Reference Semantics",
+            content="Updated: Immutable objects cannot be altered in-place."
+        )
+        updated_note = update_student_note(
+            course_id=course_id,
+            note_id=created_note.id,
+            payload=update_payload,
+            x_learner_id=learner_id
+        )
+        self.assertEqual(updated_note.title, "Updated Reference Semantics")
+
+        # 6. Delete note
+        del_resp = delete_student_note(
+            course_id=course_id,
+            note_id=created_note.id,
+            x_learner_id=learner_id
+        )
+        self.assertEqual(del_resp["status"], "success")
+
+        # Verify deletion
+        notes_after_del = list_student_notes(course_id=course_id, x_learner_id=learner_id)
+        self.assertFalse(any(n.id == created_note.id for n in notes_after_del))
 
 if __name__ == "__main__":
     unittest.main()
