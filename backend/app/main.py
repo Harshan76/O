@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
@@ -30,13 +31,20 @@ app = FastAPI(
     description="SkillForge AI — Personal AI Tutor & Adaptive Learning Platform (Learner-Only Architecture)"
 )
 
-# CORS Middleware
+# CORS Configuration for Vercel, localhost, and production domains
+raw_origins = settings.ALLOWED_ORIGINS.strip()
+if raw_origins == "*" or not raw_origins:
+    cors_origins = ["*"]
+else:
+    cors_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=True if cors_origins != ["*"] else False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Mount API Routers
@@ -65,7 +73,14 @@ def root():
 def health_check():
     return {
         "status": "healthy",
-        "database": "sqlite_persistent",
-        "ai_engine": "operational",
-        "tutor_ready": True
+        "environment": settings.ENV,
+        "database": "sqlite" if not settings.SUPABASE_URL else "supabase_postgresql",
+        "ai_engine": "operational" if not settings.GEMINI_API_KEY else "gemini_live",
+        "tutor_ready": True,
+        "version": settings.VERSION
     }
+
+if __name__ == "__main__":
+    import uvicorn
+    # Render provides PORT environment variable (default fallback 8000)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=settings.PORT, reload=False)

@@ -6,7 +6,15 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from app.config import settings
 
-DB_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "skillforge.db")
+def resolve_db_path() -> str:
+    path = settings.SQLITE_DB_PATH
+    if os.path.isabs(path):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        return path
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(base_dir, path)
+
+DB_FILE = resolve_db_path()
 
 def get_connection():
     conn = sqlite3.connect(DB_FILE, timeout=30.0, check_same_thread=False)
