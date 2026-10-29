@@ -2,7 +2,8 @@ import {
   LearnerProfile, Course, LearningGoal, AssessmentStartResponse,
   AssessmentSubmitResponse, SkillProfileResponse, LearningPathResponse,
   ChatMessage, Flashcard, ChallengeSubmitResponse, MiniProject,
-  SubmissionEvaluateResponse, ProgressSummary, ActivityItem, DemoScenario
+  SubmissionEvaluateResponse, ProgressSummary, ActivityItem, DemoScenario,
+  CourseLearningHubData, StudentNote
 } from '../types';
 
 // Resolves the backend base URL from environment or falls back to '/api' for local dev
@@ -264,6 +265,70 @@ class ApiService {
       this.setLearnerId(res.learner_id);
     }
     return res;
+  }
+
+  // Course Learning Hub & Smart Notes
+  async getCourseResources(courseId: string): Promise<CourseLearningHubData> {
+    return this.request<CourseLearningHubData>(`/courses/${courseId}/resources`);
+  }
+
+  async getCourseNotes(courseId: string, topicId?: string): Promise<StudentNote[]> {
+    const query = topicId ? `?topic_id=${encodeURIComponent(topicId)}` : '';
+    try {
+      const notes = await this.request<StudentNote[]>(`/courses/${courseId}/notes${query}`);
+      localStorage.setItem(`skillforge_notes_${this.learnerId}_${courseId}`, JSON.stringify(notes));
+      return notes;
+    } catch (err) {
+      const cached = localStorage.getItem(`skillforge_notes_${this.learnerId}_${courseId}`);
+      if (cached) {
+        try {
+          const parsed: StudentNote[] = JSON.parse(cached);
+          return topicId ? parsed.filter(n => n.topic_id === topicId) : parsed;
+        } catch {
+          // ignore
+        }
+      }
+      throw err;
+    }
+  }
+
+  async createCourseNote(courseId: string, data: { title: string; content: string; topic_id?: string; topic_title?: string }): Promise<StudentNote> {
+    try {
+      return await this.request<StudentNote>(`/courses/${courseId}/notes`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+    } catch (err) {
+      const fallbackNote: StudentNote = {
+        id: `note-${Date.now()}`,
+        learner_id: this.learnerId,
+        course_id: courseId,
+        topic_id: data.topic_id,
+        topic_title: data.topic_title,
+        title: data.title,
+        content: data.content,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      const key = `skillforge_notes_${this.learnerId}_${courseId}`;
+      const existing: StudentNote[] = JSON.parse(localStorage.getItem(key) || '[]');
+      existing.unshift(fallbackNote);
+      localStorage.setItem(key, JSON.stringify(existing));
+      return fallbackNote;
+    }
+  }
+
+  async updateCourseNote(courseId: string, noteId: string, data: { title?: string; content?: string; topic_id?: string; topic_title?: string }): Promise<StudentNote> {
+    return this.request<StudentNote>(`/courses/${courseId}/notes/${noteId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async deleteCourseNote(courseId: string, noteId: string): Promise<any> {
+    return this.request<any>(`/courses/${courseId}/notes/${noteId}`, {
+      method: 'DELETE'
+    });
   }
 }
 

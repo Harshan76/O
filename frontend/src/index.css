@@ -26,3 +26,22 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #A78BFA;
 }
+
+/* Print / PDF Document Export Styles */
+@media print {
+  header, nav, .no-print, button:not(.printable-content button) {
+    display: none !important;
+  }
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  .print-area {
+    display: block !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}

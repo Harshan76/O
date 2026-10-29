@@ -313,3 +313,81 @@ class ActivityItem(BaseModel):
     score: Optional[float] = None
     timestamp: str
     details: str
+
+# --- Course Learning Hub & Personal Smart Notes ---
+class StudentNoteCreate(BaseModel):
+    title: str
+    content: str
+    topic_id: Optional[str] = None
+    topic_title: Optional[str] = None
+
+class StudentNoteUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    topic_id: Optional[str] = None
+    topic_title: Optional[str] = None
+
+class StudentNote(BaseModel):
+    id: str
+    learner_id: str
+    course_id: str
+    topic_id: Optional[str] = None
+    topic_title: Optional[str] = None
+    title: str
+    content: str
+    created_at: str
+    updated_at: str
+
+class TopicConceptItem(BaseModel):
+    term: str
+    definition: str
+
+class TopicStepItem(BaseModel):
+    step: str
+    title: str
+    description: str
+
+class TopicCodeExample(BaseModel):
+    language: str
+    code: str
+    explanation: str
+
+class TopicPracticeQuestion(BaseModel):
+    question: str
+    answer: str
+    explanation: str
+
+class TopicStudyNotesSchema(BaseModel):
+    introduction: str
+    concepts: List[TopicConceptItem]
+    step_by_step: List[TopicStepItem]
+    code_example: Optional[TopicCodeExample] = None
+    key_takeaways: List[str]
+    practice_questions: List[TopicPracticeQuestion]
+
+class TopicVideoSchema(BaseModel):
+    id: str
+    title: str
+    channel: str
+    embed_url: str
+    watch_url: str
+    search_url: str
+    duration: str
+    summary: str
+
+class CourseTopicResourceSchema(BaseModel):
+    id: str
+    title: str
+    description: str
+    estimated_minutes: int
+    study_notes: TopicStudyNotesSchema
+    videos: List[TopicVideoSchema]
+
+class CourseLearningHubResponse(BaseModel):
+    course_id: str
+    course_title: str
+    domain: str
+    level: str
+    description: str
+    diagnostic_assessment_id: Optional[str] = None
+    topics: List[CourseTopicResourceSchema]

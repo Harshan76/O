@@ -14,6 +14,7 @@ from app.api.challenge_routes import router as challenge_router
 from app.api.project_routes import router as project_router
 from app.api.progress_routes import router as progress_router
 from app.api.demo_routes import router as demo_router
+from app.api.course_learning_routes import router as course_learning_router
 
 # Initialize Database and Seed Catalogs
 init_db()
@@ -58,6 +59,7 @@ app.include_router(challenge_router, prefix="/api")
 app.include_router(project_router, prefix="/api")
 app.include_router(progress_router, prefix="/api")
 app.include_router(demo_router, prefix="/api")
+app.include_router(course_learning_router, prefix="/api")
 
 @app.get("/")
 def root():

@@ -276,3 +276,78 @@ export interface DemoScenario {
   description: string;
   is_simulated: boolean;
 }
+
+// --- Course Learning Hub & Smart Notes ---
+export interface TopicConceptItem {
+  term: string;
+  definition: string;
+}
+
+export interface TopicStepItem {
+  step: string;
+  title: string;
+  description: string;
+}
+
+export interface TopicCodeExample {
+  language: string;
+  code: string;
+  explanation: string;
+}
+
+export interface TopicPracticeQuestion {
+  question: string;
+  answer: string;
+  explanation: string;
+}
+
+export interface TopicStudyNotes {
+  introduction: string;
+  concepts: TopicConceptItem[];
+  step_by_step: TopicStepItem[];
+  code_example?: TopicCodeExample;
+  key_takeaways: string[];
+  practice_questions: TopicPracticeQuestion[];
+}
+
+export interface TopicVideo {
+  id: string;
+  title: string;
+  channel: string;
+  embed_url: string;
+  watch_url: string;
+  search_url: string;
+  duration: string;
+  summary: string;
+}
+
+export interface CourseTopicResource {
+  id: string;
+  title: string;
+  description: string;
+  estimated_minutes: number;
+  study_notes: TopicStudyNotes;
+  videos: TopicVideo[];
+}
+
+export interface CourseLearningHubData {
+  course_id: string;
+  course_title: string;
+  domain: string;
+  level: string;
+  description: string;
+  diagnostic_assessment_id?: string;
+  topics: CourseTopicResource[];
+}
+
+export interface StudentNote {
+  id: string;
+  learner_id: string;
+  course_id: string;
+  topic_id?: string;
+  topic_title?: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}

@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { useLearner } from '../context/LearnerContext';
 import { AssessmentQuestion, AssessmentSubmitResponse } from '../types';
-import { Brain, Sparkles, CheckCircle2, AlertTriangle, ArrowRight, Lightbulb, RefreshCw } from 'lucide-react';
+import { Brain, Sparkles, CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft, Lightbulb, RefreshCw, BookOpen } from 'lucide-react';
 
 export const DiagnosticPage: React.FC = () => {
   const { showToast, refreshAll } = useLearner();
+  const [searchParams] = useSearchParams();
+  const courseIdParam = searchParams.get('courseId');
+  const targetCourseId = courseIdParam || 'c-python';
+
   const [assessmentId, setAssessmentId] = useState<string>('');
   const [title, setTitle] = useState<string>('Diagnostic Assessment');
   const [questions, setQuestions] = useState<AssessmentQuestion[]>([]);
@@ -20,7 +25,7 @@ export const DiagnosticPage: React.FC = () => {
       setLoading(true);
       setResults(null);
       setAnswers({});
-      const data = await api.startAssessment('c-python');
+      const data = await api.startAssessment(targetCourseId);
       setAssessmentId(data.assessment_id);
       setTitle(data.title);
       setQuestions(data.questions);
@@ -33,7 +38,7 @@ export const DiagnosticPage: React.FC = () => {
 
   useEffect(() => {
     startTest();
-  }, []);
+  }, [targetCourseId]);
 
   const handleSelectOption = (qId: string, optionId: string) => {
     setAnswers(prev => ({ ...prev, [qId]: optionId }));
@@ -68,6 +73,17 @@ export const DiagnosticPage: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 space-y-8">
+      {/* Return to Course Learning Hub breadcrumb */}
+      <div className="flex items-center justify-between">
+        <Link
+          to={`/courses/${targetCourseId}/learn`}
+          className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-zinc-700 hover:text-black transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Course Learning Hub</span>
+        </Link>
+      </div>
+
       {/* Header */}
       <div className="bg-white border-3 border-black rounded-2xl p-6 sm:p-8 shadow-neo-lg flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -130,6 +146,13 @@ export const DiagnosticPage: React.FC = () => {
               <span>View Skill-Gap Map</span>
               <ArrowRight className="w-4 h-4" />
             </a>
+            <Link
+              to={`/courses/${targetCourseId}/learn`}
+              className="bg-[#FEF08A] hover:bg-[#fde047] text-black font-extrabold px-4 py-2.5 rounded-xl border-2 border-black shadow-neo-xs text-xs flex items-center gap-1.5"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Course Learning Hub</span>
+            </Link>
             <a
               href="/roadmap"
               className="bg-white hover:bg-zinc-100 text-black font-extrabold px-5 py-2.5 rounded-xl border-2 border-black shadow-neo-xs text-xs"

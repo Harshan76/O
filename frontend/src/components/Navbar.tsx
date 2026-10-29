@@ -4,7 +4,7 @@ import { useLearner } from '../context/LearnerContext';
 import { 
   Sparkles, Compass, BookOpen, Brain, 
   MapPin, Bot, Code, Layers, FolderKanban, 
-  BarChart3, History, Settings, Menu, X, ChevronDown, CheckCircle
+  BarChart3, History, Settings, Menu, X, ChevronDown, CheckCircle, GraduationCap
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -16,6 +16,7 @@ export const Navbar: React.FC = () => {
   const navLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: Compass },
     { to: '/goals-courses', label: 'Goals & Courses', icon: BookOpen },
+    { to: '/courses/c-python/learn', label: 'Learning Hub', icon: GraduationCap },
     { to: '/smart-notes', label: 'Smart Notes', icon: Layers },
     { to: '/diagnostic', label: 'Diagnostic', icon: Brain },
     { to: '/skill-gap', label: 'Skill Gap', icon: MapPin },
@@ -104,9 +105,9 @@ export const Navbar: React.FC = () => {
 
           {/* Desktop Nav Links */}
           <nav className="hidden xl:flex items-center gap-1">
-            {navLinks.slice(0, 8).map((link) => {
+            {navLinks.slice(0, 9).map((link) => {
               const Icon = link.icon;
-              const isActive = location.pathname === link.to;
+              const isActive = location.pathname === link.to || (link.to.includes('/learn') && location.pathname.includes('/learn'));
               return (
                 <Link
                   key={link.to}
@@ -130,7 +131,7 @@ export const Navbar: React.FC = () => {
                 <ChevronDown className="w-3 h-3" />
               </button>
               <div className="absolute right-0 top-8 hidden group-hover:block w-48 bg-white border-2 border-black rounded shadow-neo-lg p-1.5 z-50">
-                {navLinks.slice(8).map((link) => {
+                {navLinks.slice(9).map((link) => {
                   const Icon = link.icon;
                   return (
                     <Link
@@ -184,7 +185,7 @@ export const Navbar: React.FC = () => {
         <div className="xl:hidden border-t-2 border-black bg-white p-4 space-y-1.5 max-h-[80vh] overflow-y-auto">
           {navLinks.map((link) => {
             const Icon = link.icon;
-            const isActive = location.pathname === link.to;
+            const isActive = location.pathname === link.to || (link.to.includes('/learn') && location.pathname.includes('/learn'));
             return (
               <Link
                 key={link.to}

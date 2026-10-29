@@ -293,6 +293,23 @@ def init_db():
     );
     """)
 
+    # 18. Student Personal Smart Notes (Course & Topic scoped)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS student_notes (
+        id TEXT PRIMARY KEY,
+        learner_id TEXT NOT NULL,
+        course_id TEXT NOT NULL,
+        topic_id TEXT,
+        topic_title TEXT,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (learner_id) REFERENCES learners(id),
+        FOREIGN KEY (course_id) REFERENCES courses(id)
+    );
+    """)
+
     conn.commit()
     conn.close()
 
@@ -304,7 +321,11 @@ def seed_initial_catalog():
     
     # Check if courses already exist
     cursor.execute("SELECT COUNT(*) FROM courses")
-    if cursor.fetchone()[0] > 0:
+    has_courses = cursor.fetchone()[0] > 0
+    cursor.execute("SELECT COUNT(*) FROM questions WHERE assessment_id = 'a-datasci-diag'")
+    has_all_questions = cursor.fetchone()[0] > 0
+
+    if has_courses and has_all_questions:
         conn.close()
         return
 
@@ -372,7 +393,7 @@ def seed_initial_catalog():
 
     for c in courses:
         cursor.execute("""
-        INSERT INTO courses (id, slug, title, description, domain, level, modules_json, created_at)
+        INSERT OR IGNORE INTO courses (id, slug, title, description, domain, level, modules_json, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (c["id"], c["slug"], c["title"], c["description"], c["domain"], c["level"], json.dumps(c["modules"]), now))
 
@@ -411,12 +432,12 @@ def seed_initial_catalog():
     for code, name, cat, desc, diff, cid, prereqs in skills_data:
         sid = f"skill-{code.lower()}"
         cursor.execute("""
-        INSERT INTO skills (id, course_id, code, name, category, description, difficulty, created_at)
+        INSERT OR IGNORE INTO skills (id, course_id, code, name, category, description, difficulty, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (sid, cid, code, name, cat, desc, diff, now))
         for p in prereqs:
             cursor.execute("""
-            INSERT INTO skill_prerequisites (id, skill_id, prerequisite_code)
+            INSERT OR IGNORE INTO skill_prerequisites (id, skill_id, prerequisite_code)
             VALUES (?, ?, ?)
             """, (str(uuid.uuid4()), sid, p))
 
@@ -430,7 +451,7 @@ def seed_initial_catalog():
 
     for a in assessments_info:
         cursor.execute("""
-        INSERT INTO assessments (id, course_id, title, type, description, total_questions, created_at)
+        INSERT OR IGNORE INTO assessments (id, course_id, title, type, description, total_questions, created_at)
         VALUES (?, ?, ?, 'diagnostic', ?, 5, ?)
         """, (a["id"], a["course_id"], a["title"], a["description"], now))
 
@@ -608,12 +629,184 @@ def seed_initial_catalog():
             "answer_key": "A",
             "hints": ["Functional components cannot currently define error boundaries directly without class methods or a helper library."],
             "explanation": "Error boundaries must be implemented using class components with `static getDerivedStateFromError` and/or `componentDidCatch` to trap render-phase errors."
+        },
+        # Data Science Diagnostic Questions
+        {
+            "id": "q-ds-1",
+            "assessment_id": "a-datasci-diag",
+            "skill_code": "DS_NUMPY",
+            "prompt": "When can two NumPy arrays be broadcast together according to NumPy broadcasting rules?",
+            "question_type": "mcq",
+            "difficulty": "intermediate",
+            "options": [
+                {"id": "A", "text": "Only when both arrays have the exact same shape in every dimension"},
+                {"id": "B", "text": "When their trailing dimensions are equal or one of them is 1"},
+                {"id": "C", "text": "Whenever the total number of elements in both arrays is identical"},
+                {"id": "D", "text": "Broadcasting only works between 1D vectors and scalar constants"}
+            ],
+            "answer_key": "B",
+            "hints": ["NumPy compares dimensions element-wise starting from trailing (rightmost) dimensions.", "A dimension of size 1 can stretch to match the other array."],
+            "explanation": "Two dimensions are compatible when they are equal or one of them is 1. Dimensions are compared starting from the rightmost dimension."
+        },
+        {
+            "id": "q-ds-2",
+            "assessment_id": "a-datasci-diag",
+            "skill_code": "DS_PANDAS",
+            "prompt": "What is the primary difference between `.loc` and `.iloc` indexing in a Pandas DataFrame?",
+            "question_type": "mcq",
+            "difficulty": "beginner",
+            "options": [
+                {"id": "A", "text": "`.loc` is label-based while `.iloc` is integer position-based"},
+                {"id": "B", "text": "`.loc` modifies data in place while `.iloc` creates a deep copy"},
+                {"id": "C", "text": "`.loc` only works on columns while `.iloc` only works on rows"},
+                {"id": "D", "text": "There is no difference; they are interchangeable aliases"}
+            ],
+            "answer_key": "A",
+            "hints": ["Think about labels/names vs zero-based integer offsets."],
+            "explanation": "`.loc` accesses data by row/column index labels, while `.iloc` accesses data strictly by integer ordinal positions (0, 1, 2...)."
+        },
+        {
+            "id": "q-ds-3",
+            "assessment_id": "a-datasci-diag",
+            "skill_code": "DS_STATS",
+            "prompt": "In hypothesis testing with a significance threshold of alpha = 0.05, what does a p-value of 0.02 indicate?",
+            "question_type": "mcq",
+            "difficulty": "intermediate",
+            "options": [
+                {"id": "A", "text": "The null hypothesis has a 98% probability of being true"},
+                {"id": "B", "text": "Reject the null hypothesis because the observed result is statistically significant at the 5% level"},
+                {"id": "C", "text": "Fail to reject the null hypothesis because p < alpha"},
+                {"id": "D", "text": "The statistical test was inconclusive and must be discarded"}
+            ],
+            "answer_key": "B",
+            "hints": ["When p-value < alpha, the data is unlikely to have arisen solely under the null hypothesis."],
+            "explanation": "Since the p-value (0.02) is less than alpha (0.05), we reject the null hypothesis in favor of the alternative hypothesis."
+        },
+        {
+            "id": "q-ds-4",
+            "assessment_id": "a-datasci-diag",
+            "skill_code": "DS_NEURAL",
+            "prompt": "Why is the ReLU (Rectified Linear Unit) activation function commonly preferred over Sigmoid in deep hidden layers?",
+            "question_type": "mcq",
+            "difficulty": "advanced",
+            "options": [
+                {"id": "A", "text": "ReLU mitigates the vanishing gradient problem for positive activations and is computationally efficient"},
+                {"id": "B", "text": "ReLU bounds all outputs strictly between 0 and 1"},
+                {"id": "C", "text": "ReLU is always smooth and infinitely differentiable at 0"},
+                {"id": "D", "text": "ReLU eliminates the need for backpropagation entirely"}
+            ],
+            "answer_key": "A",
+            "hints": ["Consider what happens to the derivative of Sigmoid for very large inputs."],
+            "explanation": "Sigmoid saturates at 0 and 1, causing gradients to vanish during backpropagation. ReLU has a constant derivative of 1 for positive inputs, mitigating vanishing gradients."
+        },
+        {
+            "id": "q-ds-5",
+            "assessment_id": "a-datasci-diag",
+            "skill_code": "DS_NUMPY",
+            "prompt": "What does `np.dot(A, B)` compute when `A` has shape (3, 4) and `B` has shape (4, 2)?",
+            "question_type": "mcq",
+            "difficulty": "intermediate",
+            "options": [
+                {"id": "A", "text": "A matrix with shape (3, 2)"},
+                {"id": "B", "text": "A matrix with shape (4, 4)"},
+                {"id": "C", "text": "A scalar sum of element-wise products"},
+                {"id": "D", "text": "Raises a ValueError because dimensions do not match exactly"}
+            ],
+            "answer_key": "A",
+            "hints": ["Inner dimensions must match: (3, 4) x (4, 2) results in the outer dimensions."],
+            "explanation": "Matrix multiplication of (M, K) with (K, N) produces a matrix of shape (M, N). Here, (3, 4) x (4, 2) yields shape (3, 2)."
+        },
+        # AI Engineering Diagnostic Questions
+        {
+            "id": "q-ai-1",
+            "assessment_id": "a-ai-diag",
+            "skill_code": "AI_PROMPT",
+            "prompt": "What is the primary benefit of Few-Shot Prompting compared to Zero-Shot Prompting for LLMs?",
+            "question_type": "mcq",
+            "difficulty": "intermediate",
+            "options": [
+                {"id": "A", "text": "It permanently fine-tunes the underlying neural network model weights"},
+                {"id": "B", "text": "It grounds the model's pattern recognition using explicit input-output demonstration examples"},
+                {"id": "C", "text": "It reduces token consumption and context window usage"},
+                {"id": "D", "text": "It bypasses the need for system instructions and temperature settings"}
+            ],
+            "answer_key": "B",
+            "hints": ["Few-shot gives the model examples inside the context window before asking for the actual target response."],
+            "explanation": "Few-shot prompting provides contextual demonstration exemplars that steer format, reasoning structure, and output consistency without weight updates."
+        },
+        {
+            "id": "q-ai-2",
+            "assessment_id": "a-ai-diag",
+            "skill_code": "AI_EMBED",
+            "prompt": "When comparing two unit-normalized vector embeddings in a vector database, why is Cosine Similarity equivalent to Dot Product?",
+            "question_type": "mcq",
+            "difficulty": "intermediate",
+            "options": [
+                {"id": "A", "text": "Because the product of their norms (magnitudes) is exactly 1"},
+                {"id": "B", "text": "Because high-dimensional spaces ignore vector direction"},
+                {"id": "C", "text": "Because dot product only works on orthogonal matrices"},
+                {"id": "D", "text": "Because cosine similarity cannot be calculated in Euclidean spaces"}
+            ],
+            "answer_key": "A",
+            "hints": ["Cosine similarity = (A . B) / (||A|| * ||B||). What is ||A|| * ||B|| when vectors have unit length?"],
+            "explanation": "Since both vectors have unit length (norm = 1), the denominator `||A|| * ||B||` is 1, making `cos(theta) = A . B`."
+        },
+        {
+            "id": "q-ai-3",
+            "assessment_id": "a-ai-diag",
+            "skill_code": "AI_RAG",
+            "prompt": "In a Retrieval-Augmented Generation (RAG) pipeline, why is chunk overlap (e.g. 50-100 tokens) recommended when splitting documents?",
+            "question_type": "mcq",
+            "difficulty": "advanced",
+            "options": [
+                {"id": "A", "text": "To double the storage efficiency of the vector index"},
+                {"id": "B", "text": "To ensure semantic context at sentence boundaries is preserved across neighboring chunks"},
+                {"id": "C", "text": "To speed up approximate nearest neighbor (ANN) retrieval latency"},
+                {"id": "D", "text": "To allow the embedding model to skip stop words"}
+            ],
+            "answer_key": "B",
+            "hints": ["If an important concept or sentence is split cleanly across two chunks, context can be lost."],
+            "explanation": "Chunk overlap prevents critical semantic context, relationships, or sentences from being severed at hard chunk boundaries."
+        },
+        {
+            "id": "q-ai-4",
+            "assessment_id": "a-ai-diag",
+            "skill_code": "AI_AGENTS",
+            "prompt": "What core execution cycle characterizes the ReAct (Reasoning + Acting) agent pattern?",
+            "question_type": "mcq",
+            "difficulty": "advanced",
+            "options": [
+                {"id": "A", "text": "Thought -> Action -> Observation loop until the final objective is accomplished"},
+                {"id": "B", "text": "Pre-training -> Fine-tuning -> RLHF evaluation"},
+                {"id": "C", "text": "Prompt -> Static Response without tool interaction"},
+                {"id": "D", "text": "Embedding generation -> Cosine ranking -> Direct response"}
+            ],
+            "answer_key": "A",
+            "hints": ["ReAct alternates between generating reasoning thoughts and executing tool actions with environmental observations."],
+            "explanation": "The ReAct loop interleaves explicit reasoning traces ('Thought'), tool invocation ('Action'), and tool response processing ('Observation')."
+        },
+        {
+            "id": "q-ai-5",
+            "assessment_id": "a-ai-diag",
+            "skill_code": "AI_PROMPT",
+            "prompt": "Which open standard is used by LLM function calling frameworks (such as Gemini and OpenAI) to define structured tool arguments?",
+            "question_type": "mcq",
+            "difficulty": "intermediate",
+            "options": [
+                {"id": "A", "text": "JSON Schema"},
+                {"id": "B", "text": "XML DTD"},
+                {"id": "C", "text": "YAML 1.2 Syntax"},
+                {"id": "D", "text": "GraphQL Type Definition"}
+            ],
+            "answer_key": "A",
+            "hints": ["It defines properties, types ('string', 'number', 'object'), required arrays, and descriptions in JSON."],
+            "explanation": "Tool schemas and function definitions use JSON Schema specifications to enforce parameter names, types, descriptions, and required constraints."
         }
     ]
 
     for q in diagnostic_questions:
         cursor.execute("""
-        INSERT INTO questions (id, assessment_id, skill_code, prompt, question_type, difficulty, options_json, answer_key, hints_json, explanation, created_at)
+        INSERT OR REPLACE INTO questions (id, assessment_id, skill_code, prompt, question_type, difficulty, options_json, answer_key, hints_json, explanation, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (q["id"], q["assessment_id"], q["skill_code"], q["prompt"], q["question_type"], q["difficulty"], json.dumps(q["options"]), q["answer_key"], json.dumps(q["hints"]), q["explanation"], now))
 
@@ -701,7 +894,7 @@ def seed_initial_catalog():
 
     for p in projects:
         cursor.execute("""
-        INSERT INTO mini_projects (id, course_id, skill_code, title, domain, objective, difficulty, estimated_hours, requirements_json, milestones_json, rubric_json, created_at)
+        INSERT OR IGNORE INTO mini_projects (id, course_id, skill_code, title, domain, objective, difficulty, estimated_hours, requirements_json, milestones_json, rubric_json, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (p["id"], p["course_id"], p["skill_code"], p["title"], p["domain"], p["objective"], p["difficulty"], p["estimated_hours"], json.dumps(p["requirements"]), json.dumps(p["milestones"]), json.dumps(p["rubric"]), now))
 

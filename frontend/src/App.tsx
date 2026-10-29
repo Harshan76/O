@@ -7,6 +7,7 @@ import { AuthPage } from './pages/AuthPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { GoalsCoursesPage } from './pages/GoalsCoursesPage';
+import { CourseLearningHubPage } from './pages/CourseLearningHubPage';
 import { SmartNotesPage } from './pages/SmartNotesPage';
 import { DiagnosticPage } from './pages/DiagnosticPage';
 import { SkillGapPage } from './pages/SkillGapPage';
@@ -49,6 +50,8 @@ export const AppContent: React.FC = () => {
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/goals-courses" element={<GoalsCoursesPage />} />
+          <Route path="/courses/:courseId/learn" element={<CourseLearningHubPage />} />
+          <Route path="/learning-hub" element={<CourseLearningHubPage />} />
           <Route path="/smart-notes" element={<SmartNotesPage />} />
           <Route path="/diagnostic" element={<DiagnosticPage />} />
           <Route path="/skill-gap" element={<SkillGapPage />} />
